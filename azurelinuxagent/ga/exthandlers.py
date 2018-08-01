@@ -39,7 +39,7 @@ import azurelinuxagent.common.version as version
 from azurelinuxagent.common.cgroups import CGroups, CGroupsTelemetry
 from azurelinuxagent.common.errorstate import ErrorState, ERROR_STATE_DELTA_DEFAULT, ERROR_STATE_DELTA_INSTALL
 from azurelinuxagent.common.event import add_event, WALAEventOperation, elapsed_milliseconds, report_event
-from azurelinuxagent.common.exception import ExtensionError, ProtocolError
+from azurelinuxagent.common.exception import ExtensionError, ProtocolError, ProtocolNotFoundError
 from azurelinuxagent.common.future import ustr
 from azurelinuxagent.common.protocol.restapi import ExtHandlerStatus, \
                                                     ExtensionStatus, \
@@ -471,6 +471,10 @@ class ExtHandlersHandler(object):
             if self.log_report:
                 logger.verbose("Completed vm agent status report")
             self.report_status_error_state.reset()
+        except ProtocolNotFoundError as e:
+            self.report_status_error_state.incr()
+            message = "Failed to report vm agent status: {0}".format(e)
+            logger.verbose(message)
         except ProtocolError as e:
             self.report_status_error_state.incr()
             message = "Failed to report vm agent status: {0}".format(e)
@@ -998,12 +1002,12 @@ class ExtHandlerInstance(object):
                 CGroups.add_to_extension_cgroup(self.ext_handler.name)
 
             process = subprocess.Popen(full_path,
-                                  shell=True,
-                                  cwd=base_dir,
-                                  stdout=subprocess.PIPE,
-                                  stderr=subprocess.PIPE,
-                                  env=os.environ,
-                                  preexec_fn=pre_exec_function)
+                                       shell=True,
+                                       cwd=base_dir,
+                                       stdout=subprocess.PIPE,
+                                       stderr=subprocess.PIPE,
+                                       env=os.environ,
+                                       preexec_fn=pre_exec_function)
         except OSError as e:
             raise ExtensionError("Failed to launch '{0}': {1}".format(full_path, e.strerror))
 
@@ -1012,7 +1016,9 @@ class ExtHandlerInstance(object):
         msg = capture_from_process(process, cmd, timeout)
 
         ret = process.poll()
-        if ret is None or ret != 0:
+        if ret is None:
+            raise ExtensionError("Process {0} was not terminated: {1}\n{2}".format(process.pid, cmd, msg))
+        if ret != 0:
             raise ExtensionError("Non-zero exit code: {0}, {1}\n{2}".format(ret, cmd, msg))
 
         duration = elapsed_milliseconds(begin_utc)
