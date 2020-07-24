@@ -166,7 +166,6 @@ class TestMonitor(AgentTestCase, HttpRequestPredicates):
 
         self.assertEqual(0, len(logger.DEFAULT_LOGGER.periodic_messages), "The monitor thread did not reset the periodic log messages")
 
-
 class TestEventMonitoring(AgentTestCase, HttpRequestPredicates):
     def setUp(self):
         AgentTestCase.setUp(self)

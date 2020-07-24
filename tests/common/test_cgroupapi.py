@@ -686,13 +686,14 @@ class SystemdCgroupsApiTestCase(AgentTestCase):
 
                     self.assertEquals(2, len(extension_calls), "The extension should have been invoked exactly twice")
                     self.assertIn("systemd-run --unit=Microsoft.Compute.TestExtension_1.2.3", extension_calls[0],
-                                  "The first call to the extension should have used systemd")
+                        "The first call to the extension should have used systemd")
                     self.assertEquals(command, extension_calls[1],
-                                      "The second call to the extension should not have used systemd")
+                        "The second call to the extension should not have used systemd")
 
                     self.assertEquals(len(CGroupsTelemetry._tracked), 0, "No cgroups should have been created")
 
                     self.assertIn("TEST_OUTPUT\n", command_output, "The test output was not captured")
+
 
     @patch('time.sleep', side_effect=lambda _: mock_sleep())
     def test_start_extension_command_should_invoke_the_command_directly_if_systemd_times_out(self, _):
