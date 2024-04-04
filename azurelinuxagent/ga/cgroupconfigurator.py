@@ -429,7 +429,7 @@ class CGroupConfigurator(object):
                         "The Agent is not in the expected CPU cgroup; will not enable monitoring. Cgroup:[{0}] Expected:[{1}]",
                         cpu_cgroup_relative_path,
                         expected_relative_path)
-                    cpu_cgroup_relative_path = None  # Set the path to None to prevent monitoring
+                    # cpu_cgroup_relative_path = None  # Set the path to None to prevent monitoring
 
             if memory_cgroup_relative_path is None:
                 _log_cgroup_warning("The agent's process is not within a memory cgroup")
@@ -442,7 +442,7 @@ class CGroupConfigurator(object):
                         "The Agent is not in the expected memory cgroup; will not enable monitoring. CGroup:[{0}] Expected:[{1}]",
                         memory_cgroup_relative_path,
                         expected_relative_path)
-                    memory_cgroup_relative_path = None  # Set the path to None to prevent monitoring
+                    # memory_cgroup_relative_path = None  # Set the path to None to prevent monitoring
 
             if cpu_controller_root is not None and cpu_cgroup_relative_path is not None:
                 agent_cpu_cgroup_path = os.path.join(cpu_controller_root, cpu_cgroup_relative_path)

@@ -265,14 +265,25 @@ class SystemdCgroupsApi(CGroupsApi):
 
     def start_extension_command(self, extension_name, command, cmd_name, timeout, shell, cwd, env, stdout, stderr,
                                 error_code=ExtensionErrorCodes.PluginUnknownFailure):
-        scope = "{0}_{1}".format(cmd_name, uuid.uuid4())
+        scope_name = "{0}_{1}.scope".format(cmd_name, uuid.uuid4())
         extension_slice_name = self.get_extension_slice_name(extension_name)
+
+        # Some distros like ubuntu20 by default cpu and memory accounting enabled. Thus create nested cgroups under the extension slice
+        # So disabling CPU and Memory accounting prevents from creating nested cgroups, so that all the counters will be present in extension Cgroup
+        # since slice unit file configured with accounting enabled.
+        script = """
+            busctl call \
+                org.freedesktop.systemd1 /org/freedesktop/systemd1 org.freedesktop.systemd1.Manager \
+                StartTransientUnit \
+                'ssa(sv)a(sa(sv))' \
+                {0} fail 4 PIDs au 1 $$ Slice s {1} CPUAccounting b 0 MemoryAccounting b 0 0
+            sleep 3
+            exec {2}
+        """.format(scope_name, extension_slice_name, command)
+
         with self._systemd_run_commands_lock:
             process = subprocess.Popen(  # pylint: disable=W1509
-                # Some distros like ubuntu20 by default cpu and memory accounting enabled. Thus create nested cgroups under the extension slice
-                # So disabling CPU and Memory accounting prevents from creating nested cgroups, so that all the counters will be present in extension Cgroup
-                # since slice unit file configured with accounting enabled.
-                "systemd-run --property=CPUAccounting=no --property=MemoryAccounting=no --unit={0} --scope --slice={1} {2}".format(scope, extension_slice_name, command),
+                script,
                 shell=shell,
                 cwd=cwd,
                 stdout=stdout,
@@ -282,8 +293,6 @@ class SystemdCgroupsApi(CGroupsApi):
 
             # We start systemd-run with shell == True so process.pid is the shell's pid, not the pid for systemd-run
             self._systemd_run_commands.append(process.pid)
-
-        scope_name = scope + '.scope'
 
         logger.info("Started extension in unit '{0}'", scope_name)
 
@@ -321,7 +330,7 @@ class SystemdCgroupsApi(CGroupsApi):
         except ExtensionError as e:
             # The extension didn't terminate successfully. Determine whether it was due to systemd errors or
             # extension errors.
-            if not self._is_systemd_failure(scope, stderr):
+            if not self._is_systemd_failure(scope_name, stderr):
                 # There was an extension error; it either timed out or returned a non-zero exit code. Re-raise the error
                 raise
 
