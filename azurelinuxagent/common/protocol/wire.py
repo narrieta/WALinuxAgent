@@ -1141,7 +1141,7 @@ class WireClient(object):
         }
 
     def get_header_for_cert(self):
-        return self._get_header_for_encrypted_request("DES_EDE3_CBC")
+        return self._get_header_for_encrypted_request("AES128_CBC")
 
     def get_header_for_remote_access(self):
         return self._get_header_for_encrypted_request("AES128_CBC")
