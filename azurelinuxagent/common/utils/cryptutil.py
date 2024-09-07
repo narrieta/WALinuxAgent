@@ -95,7 +95,7 @@ class CryptUtil(object):
             try:
                 shellutil.run_pipe([
                     [self.openssl_cmd, "cms", "-decrypt", "-in", p7m_file, "-inkey", trans_prv_file, "-recip", trans_cert_file],
-                    [self.openssl_cmd, "pkcs12", "-nodes", "-password", "pass:", "-out", pem_file]])
+                    [self.openssl_cmd, "pkcs12", "-nodes", "-password", "pass:", "-nomacver", "-out", pem_file]])
             except shellutil.CommandError as command_error:
                 logger.error("Failed to decrypt {0} (return code: {1})\n[stdout]\n{2}\n[stderr]\n{3}",
                     p7m_file, command_error.returncode, command_error.stdout, command_error.stderr)
